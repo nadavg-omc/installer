@@ -10,7 +10,7 @@ fi
 checkTagExist mysqld.success
 checkTagExist ssl-ready.success
 
-appVersion=5.18.2
+appVersion=5.23.0
 appPath=/opt/mattermost
 rootDir=$(rootDir)
 certsPath=/etc/letsencrypt/live/${CWM_DISPLAYED_ADDRESS}

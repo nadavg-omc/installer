@@ -12,7 +12,7 @@ checkTagExist mysqld.success
 checkTagExist ssl-ready.success
 
 phpVersion=$(php -v | head -n 1 | cut -d " " -f 2 | cut -f1-2 -d".")
-appVersion=18.0.0
+appVersion=18.0.4
 appPath=/var/www/html
 rootDir=$(rootDir)
 

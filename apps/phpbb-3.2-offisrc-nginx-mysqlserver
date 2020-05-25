@@ -11,7 +11,7 @@ checkTagExist nginx.success
 checkTagExist mysqld.success
 checkTagExist nginx-enable-php-ssl.success
 
-appVersion=3.2.7
+appVersion=3.2.9
 appArchive=phpBB-$appVersion.tar.bz2
 appPath=/var/www/html
 rootDir=$(rootDir)

@@ -15,18 +15,28 @@ app_path=/opt/rocket
 
 echo "Installing and tweaking nodejs requirements" | log
 apt install graphicsmagick -y
+apt install software-properties-common -y
 checkPackageInstalled graphicsmagick
+checkPackageInstalled software-properties-common
 npm install -g inherits n
-n 8.11.3
+# n 8.11.3
+
+echo "Configuring mongodb" | log
+echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
+systemctl restart mongod.service
+command="rs.initiate();"
+mongo --eval "${command}" | log
 
 echo "Creat app user" | log
-useradd -m -U -r -d $app_path rocket
+# useradd -m -U -r -d $app_path rocket
+adduser rocket
 usermod -a -G rocket www-data
 chmod 750 $app_path
 
 echo "Install main app" | log
 
-mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017/rocketchat?authSource=admin"
+# mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017/rocketchat?authSource=admin"
+mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017"
 app_port=3000
 curlDownload https://releases.rocket.chat/latest/download $app_path/rocket.chat.tgz
 waitOrStop 0 "File not downloaded from official source"
@@ -40,7 +50,8 @@ cd Rocket.Chat/programs/server
 npm install
 export PORT=${app_port}
 export ROOT_URL="http://0.0.0.0:"${app_port}"/"
-export MONGO_URL=${mongo_url}
+export MONGO_URL=${mongo_url}/rocketchat?authSource=admin
+export MONGO_OPLOG_URL=${mongo_url}/local?replSet=rs01
 EOF
 
 ufw allow $app_port
@@ -60,7 +71,7 @@ StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=rocketchat
 User=rocket
-Environment=NODE_ENV=production MONGO_URL=${mongo_url} ROOT_URL=https://${CWM_SERVERIP} PORT=${app_port}
+Environment=NODE_ENV=production MONGO_URL=${mongo_url}/rocketchat?authSource=admin ROOT_URL=https://${CWM_DISPLAYED_ADDRESS} PORT=${app_port}
 ExecStart=/usr/local/bin/node ${app_path}/Rocket.Chat/main.js
 
 [Install]
@@ -82,16 +93,16 @@ bannerFiglet "Loading in Progress\n Please Wait.\n" >> $nginxErrorPage
 printf "Application and services loading is in progress, process will take a couple of minutes to complete \n\nThank you for your patience.\n\nRefresh page within a couple of minutes for updated status." >> $nginxErrorPage
 
 echo "Configuring nginx" | log
-cp -f $rootDir/tweaks/extras/rocketchat-nginx/rocketchat-nginx-config /etc/nginx/sites-available/rocketchat.conf
-# sed -i "s/SERVERIP/${CWM_SERVERIP}/g" /etc/nginx/sites-available/rocketchat.conf
+cp -f $rootDir/tweaks/extras/rocketchat-nginx/rocketchat.conf /etc/nginx/sites-available/
+# sed -i "s/SERVERIP/${CWM_DISPLAYED_ADDRESS}/g" /etc/nginx/sites-available/rocketchat.conf
 ln -s /etc/nginx/sites-available/rocketchat.conf /etc/nginx/sites-enabled/
 unlink /etc/nginx/sites-enabled/default
 unlink /etc/nginx/sites-enabled/default-ssl
-systemctl reload nginx
+systemctl reload nginx.service
 waitOrStop 0 "Reload nginx service failed"
 
 descriptionAppend "Rocket.chat application directory: ${app_path}/Rocket.Chat/"
-descriptionAppend "Rocket.chat web UI: https://${CWM_SERVERIP}"
+descriptionAppend "Rocket.chat web UI: https://${CWM_DISPLAYED_ADDRESS}"
 descriptionAppend " "
 
 tagScript success

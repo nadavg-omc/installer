@@ -11,48 +11,49 @@ checkTagExist mongodb.success
 checkTagExist nodejs.success
 
 rootDir=$(rootDir)
-app_path=/opt/rocket
-
-echo "Installing and tweaking nodejs requirements" | log
-apt install graphicsmagick -y
-apt install software-properties-common -y
-checkPackageInstalled graphicsmagick
-checkPackageInstalled software-properties-common
-npm install -g inherits n
-n 8.11.3
-
-echo "Configuring mongodb" | log
-echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
-systemctl restart mongod.service
-command="rs.initiate();"
-mongo --eval "${command}" | log
-
-echo "Creat app user" | log
-useradd -m -U -r -d $app_path rocket
-# adduser rocket
-usermod -a -G rocket www-data
-chmod 750 $app_path
-
-echo "Install main app" | log
-
+app_path=/opt/Rocket.Chat
+app_port=3000
 # mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017/rocketchat?authSource=admin"
 mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017"
-app_port=3000
-curlDownload https://releases.rocket.chat/latest/download $app_path/rocket.chat.tgz
-waitOrStop 0 "File not downloaded from official source"
-chown -R rocket:rocket $app_path/rocket.chat.tgz
 
-su rocket << EOF
-cd ${app_path}
+echo "Installing and tweaking nodejs requirements" | log
+apt install software-properties-common graphicsmagick -y
+checkPackageInstalled software-properties-common graphicsmagick
+npm install -g inherits n
+n 12.14.0
+
+echo "Configuring mongodb" | log
+# echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
+# systemctl restart mongod.service
+# command="rs.initiate();"
+# mongo --eval "${command}" | log
+
+echo "Creat app user" | log
+# useradd -m -U -r -d $app_path rocket
+# usermod -a -G rocket www-data
+# chmod 750 $app_path
+useradd -M rocketchat
+usermod -L rocketchat
+mkdir -m 750 $app_path
+
+echo "Install main app" | log
+curlDownload https://releases.rocket.chat/latest/download $app_path/../rocket.chat.tgz
+waitOrStop 0 "File not downloaded from official source"
+chown -R rocketchat:rocketchat $app_path/../rocket.chat.tgz
+
+su rocketchat << EOF
+cd ${app_path}/..
 tar zxf rocket.chat.tgz
 mv bundle Rocket.Chat
 cd Rocket.Chat/programs/server
 npm install
 export PORT=${app_port}
 export ROOT_URL="http://0.0.0.0:"${app_port}"/"
-export MONGO_URL=${mongo_url}/rocketchat?authSource=admin
-export MONGO_OPLOG_URL=${mongo_url}/local?replSet=rs01
+export MONGO_URL=${mongo_url}"/rocketchat?authSource=admin"
+export MONGO_OPLOG_URL=${mongo_url}"/local?replSet=rs01"
 EOF
+
+chown -R rocketchat:rocketchat $app_path
 
 ufw allow $app_port
 ufw allow 27017
@@ -70,9 +71,9 @@ RestartSec=10
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=rocketchat
-User=rocket
+User=rocketchat
 Environment=NODE_ENV=production MONGO_URL=${mongo_url}/rocketchat?authSource=admin MONGO_OPLOG_URL=${mongo_url}/local?replSet=rs01 ROOT_URL=https://${CWM_DISPLAYED_ADDRESS} PORT=${app_port}
-ExecStart=/usr/local/bin/node ${app_path}/Rocket.Chat/main.js
+ExecStart=/usr/local/bin/node ${app_path}/main.js
 
 [Install]
 WantedBy=multi-user.target
@@ -101,7 +102,7 @@ unlink /etc/nginx/sites-enabled/default-ssl
 systemctl reload nginx.service
 waitOrStop 0 "Reload nginx service failed"
 
-descriptionAppend "Rocket.chat application directory: ${app_path}/Rocket.Chat/"
+descriptionAppend "Rocket.chat application directory: ${app_path}/"
 descriptionAppend "Rocket.chat web UI: https://${CWM_DISPLAYED_ADDRESS}"
 descriptionAppend " "
 

@@ -19,7 +19,7 @@ apt install software-properties-common -y
 checkPackageInstalled graphicsmagick
 checkPackageInstalled software-properties-common
 npm install -g inherits n
-# n 8.11.3
+n 8.11.3
 
 echo "Configuring mongodb" | log
 echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
@@ -28,8 +28,8 @@ command="rs.initiate();"
 mongo --eval "${command}" | log
 
 echo "Creat app user" | log
-# useradd -m -U -r -d $app_path rocket
-adduser rocket
+useradd -m -U -r -d $app_path rocket
+# adduser rocket
 usermod -a -G rocket www-data
 chmod 750 $app_path
 
@@ -71,7 +71,7 @@ StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=rocketchat
 User=rocket
-Environment=NODE_ENV=production MONGO_URL=${mongo_url}/rocketchat?authSource=admin ROOT_URL=https://${CWM_DISPLAYED_ADDRESS} PORT=${app_port}
+Environment=NODE_ENV=production MONGO_URL=${mongo_url}/rocketchat?authSource=admin MONGO_OPLOG_URL=${mongo_url}/local?replSet=rs01 ROOT_URL=https://${CWM_DISPLAYED_ADDRESS} PORT=${app_port}
 ExecStart=/usr/local/bin/node ${app_path}/Rocket.Chat/main.js
 
 [Install]

@@ -44,8 +44,8 @@ chown -R rocketchat:rocketchat $app_path/../rocket.chat.tgz
 su rocketchat << EOF
 cd ${app_path}/..
 tar zxf rocket.chat.tgz
-mv bundle Rocket.Chat
-cd Rocket.Chat/programs/server
+mv bundle ${app_path}
+cd ${app_path}/programs/server
 npm install
 export PORT=${app_port}
 export ROOT_URL="http://0.0.0.0:"${app_port}"/"

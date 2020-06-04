@@ -13,8 +13,8 @@ checkTagExist nodejs.success
 rootDir=$(rootDir)
 app_path=/opt/Rocket.Chat
 app_port=3000
-# mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017/rocketchat?authSource=admin"
 mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017"
+# mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017/rocketchat?authSource=admin"
 
 echo "Installing and tweaking nodejs requirements" | log
 apt install software-properties-common graphicsmagick -y
@@ -22,16 +22,13 @@ checkPackageInstalled software-properties-common graphicsmagick
 npm install -g inherits n
 n 12.14.0
 
-echo "Configuring mongodb" | log
+# echo "Configuring mongodb" | log
 # echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
 # systemctl restart mongod.service
 # command="rs.initiate();"
 # mongo --eval "${command}" | log
 
 echo "Creat app user" | log
-# useradd -m -U -r -d $app_path rocket
-# usermod -a -G rocket www-data
-# chmod 750 $app_path
 useradd -M rocketchat
 usermod -L rocketchat
 mkdir -m 750 $app_path

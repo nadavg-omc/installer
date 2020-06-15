@@ -11,11 +11,11 @@ checkTagExist mongodb.success
 checkTagExist nodejs.success
 
 rootDir=$(rootDir)
+user_name=rocketchat
 app_path=/opt/Rockat.Chat
+app_port=3000
 # mongo_url="mongodb://localhost:27017"
 mongo_url="mongodb://admin:${ADMINPASSWORD}@localhost:27017"
-user_name=rocketchat
-app_port=3000
 mongo_config=/etc/mongod.conf
 
 echo "Installing and tweaking nodejs requirements" | log
@@ -30,19 +30,21 @@ usermod -a -G $user_name www-data
 chmod 750 $app_path
 
 echo "Configuring mongodb for Rocket.Chat" | log
-sed -i "s/^#  engine:/  engine: mmapv1/"  $mongo_config
+# sed -i "s/^#  engine:/  engine: mmapv1/"  $mongo_config
 sed -i "s/^#replication:/replication:\n  replSetName: rs01/" $mongo_config
+systemctl restart mongod.service
 
 echo "Install main app" | log
-curlDownload https://releases.rocket.chat/latest/download $app_path/rocket.chat.tgz
+curlDownload https://releases.rocket.chat/latest/download $rootDir/temp/rocket.chat.tgz
 waitOrStop 0 "File not downloaded from official source"
-chown -R $user_name:$user_name $app_path/rocket.chat.tgz
+# chown -R $user_name:$user_name $rootDir/temp/rocket.chat.tgz
+cd ${rootDir}/temp
+tar zxf rocket.chat.tgz
+mv bundle/* ${app_path}/
+chown -R $user_name:$user_name $app_path
 
 su ${user_name} << EOF
-cd ${app_path}
-tar zxf rocket.chat.tgz
-mv bundle Rocket.Chat
-cd Rocket.Chat/programs/server
+cd ${app_path}/programs/server
 npm install
 export PORT=${app_port}
 export ROOT_URL="http://0.0.0.0:"${app_port}"/"
@@ -86,7 +88,7 @@ bannerFiglet "Loading in Progress\n Please Wait.\n" >> $nginxErrorPage
 printf "Application and services loading is in progress, process will take a couple of minutes to complete \n\nThank you for your patience.\n\nRefresh page within a couple of minutes for updated status." >> $nginxErrorPage
 
 echo "Configuring nginx" | log
-cp -f $rootDir/tweaks/extras/rocketchat-nginx/rocketchat-nginx-config /etc/nginx/sites-available/rocketchat.conf
+cp -f $rootDir/tweaks/extras/rocketchat-nginx/rocketchat.conf /etc/nginx/sites-available/
 # sed -i "s/SERVERIP/${CWM_SERVERIP}/g" /etc/nginx/sites-available/rocketchat.conf
 ln -s /etc/nginx/sites-available/rocketchat.conf /etc/nginx/sites-enabled/
 unlink /etc/nginx/sites-enabled/default

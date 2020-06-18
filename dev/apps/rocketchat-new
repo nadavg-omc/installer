@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Add this at the begining of all scripts.
+if [ -f "include/startup.sh" ]; then
+    . include/startup.sh
+elif [ -f "../include/startup.sh" ]; then
+    . ../include/startup.sh
+fi
+
+rootDir=$(rootDir)
+
+# update system first
+apt update -y
+apt upgrade -y 
+apt dist-upgrade -y
+
+ufw allow http
+ufw allow https
+
+# install dependencies
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
+echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.0.list
+apt update -y && apt install curl -y
+curl -sL https://deb.nodesource.com/setup_12.x | bash -
+apt install -y build-essential mongodb-org nodejs graphicsmagick
+npm install -g inherits n && n 12.14.0
+
+# install rocketchat
+curl -L https://releases.rocket.chat/latest/download -o /tmp/rocket.chat.tgz
+tar -xzf /tmp/rocket.chat.tgz -C /tmp
+cd /tmp/bundle/programs/server && npm install
+mv /tmp/bundle /opt/Rocket.Chat
+
+# configure rocketchat
+useradd -M rocketchat && usermod -L rocketchat
+chown -R rocketchat:rocketchat /opt/Rocket.Chat
+cp -f $rootDir/dev/tweaks/rocketchat.service /lib/systemd/system/
+
+sed -i "s/^#  engine:/  engine: mmapv1/"  /etc/mongod.conf
+sed -i "s/^#replication:/replication:\n  replSetName: rs01/" /etc/mongod.conf
+systemctl enable mongod && systemctl start mongod
+mongo --eval "printjson(rs.initiate())"
+systemctl enable rocketchat && systemctl start rocketchat
+
+# nginx reverse proxy
+add-apt-repository -y ppa:nginx/stable
+apt install nginx-full
+openssl req -x509 -sha256 -newkey rsa:2048 -keyout /etc/nginx/certificate.key -out /etc/nginx/certificate.crt -days 1024 -nodes -subj '/CN=localhost'
+chmod 400 /etc/nginx/certificate.key
+cp -f $rootDir/dev/tweaks/rocketchat.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/rocketchat.conf /etc/nginx/sites-enabled/
+unlink /etc/nginx/sites-enabled/default
+service nginx restart
+
+
+tagScript success
+
+exit 0

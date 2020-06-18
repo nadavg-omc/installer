@@ -16,6 +16,7 @@ apt dist-upgrade -y
 
 ufw allow http
 ufw allow https
+ufw allow 27017
 
 # install dependencies
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
@@ -35,7 +36,7 @@ mv /tmp/bundle /opt/Rocket.Chat
 useradd -M rocketchat && usermod -L rocketchat
 chown -R rocketchat:rocketchat /opt/Rocket.Chat
 cp -f $rootDir/dev/tweaks/rocketchat.service /lib/systemd/system/
-sed -n 's|DOMAIN_PLACEHOLDER|'"${CWM_DISPLAYED_ADDRESS}"':3000|p' /lib/systemd/system/rocketchat.service
+sed -i '/Environment=/s/DOMAIN_PLACEHOLDER/'"${CWM_DISPLAYED_ADDRESS}"':3000/g' /lib/systemd/system/rocketchat.service
 systemctl daemon-reload
 sed -i "s/^#  engine:/  engine: mmapv1/"  /etc/mongod.conf
 sed -i "s/^#replication:/replication:\n  replSetName: rs01/" /etc/mongod.conf
@@ -51,7 +52,8 @@ chmod 400 /etc/nginx/certificate.key
 cp -f $rootDir/dev/tweaks/rocketchat.conf /etc/nginx/sites-available/
 ln -s /etc/nginx/sites-available/rocketchat.conf /etc/nginx/sites-enabled/
 unlink /etc/nginx/sites-enabled/default
-sed -n 's|http://'"${CWM_DISPLAYED_ADDRESS}"':3000|https://'"${CWM_DISPLAYED_ADDRESS}"'/|p' /lib/systemd/system/rocketchat.service
+sed -i '|Environment=|s|http://'"${CWM_DISPLAYED_ADDRESS}"':3000|https://'"${CWM_DISPLAYED_ADDRESS}"'/|g' /lib/systemd/system/rocketchat.service
+
 service nginx restart
 
 tagScript success

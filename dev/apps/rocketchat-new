@@ -32,6 +32,7 @@ tar -xzf /tmp/rocket.chat.tgz -C /tmp
 cd /tmp/bundle/programs/server && npm install
 mv /tmp/bundle /opt/Rocket.Chat
 
+: <<'END'
 # configure rocketchat
 useradd -M rocketchat && usermod -L rocketchat
 chown -R rocketchat:rocketchat /opt/Rocket.Chat
@@ -57,5 +58,7 @@ sed -i '|Environment=|s|http://'"${CWM_DISPLAYED_ADDRESS}"':3000|https://'"${CWM
 service nginx restart
 
 tagScript success
+
+END
 
 exit 0

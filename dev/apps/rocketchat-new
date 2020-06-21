@@ -8,6 +8,7 @@ elif [ -f "../include/startup.sh" ]; then
 fi
 
 rootDir=$(rootDir)
+rocketPath=/opt/Rocket.Chat
 
 # update system first
 apt update -y
@@ -33,7 +34,7 @@ curl -L https://releases.rocket.chat/latest/download -o /tmp/rocket.chat.tgz
 tar -xzf /tmp/rocket.chat.tgz -C /tmp
 cd /tmp/bundle/programs/server 
 npm install
-mv /tmp/bundle /opt/Rocket.Chat
+mv /tmp/bundle $rocketPath
 
 # prepare mongodb for rocketchat
 sed -i "s/^#  engine:/  engine: mmapv1/"  /etc/mongod.conf
@@ -49,7 +50,7 @@ mongo --eval "printjson(rs.initiate())"
 # configure rocketchat
 useradd -M rocketchat
 usermod -L rocketchat
-chown -R rocketchat:rocketchat /opt/Rocket.Chat
+chown -R rocketchat:rocketchat $rocketPath
 cp -f $rootDir/dev/tweaks/rocketchat.service /lib/systemd/system/
 sed -i '/Environment=/s/DOMAIN_PLACEHOLDER/'"${CWM_DISPLAYED_ADDRESS}"':3000/g' /lib/systemd/system/rocketchat.service
 systemctl daemon-reload

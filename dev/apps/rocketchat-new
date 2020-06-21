@@ -35,16 +35,20 @@ cd /tmp/bundle/programs/server
 npm install
 mv /tmp/bundle /opt/Rocket.Chat
 
-: <<'END'
-# configure rocketchat
-useradd -M rocketchat
-usermod -L rocketchat
-chown -R rocketchat:rocketchat /opt/Rocket.Chat
+# prepare mongodb for rocketchat
 sed -i "s/^#  engine:/  engine: mmapv1/"  /etc/mongod.conf
 sed -i "s/^#replication:/replication:\n  replSetName: rs01/" /etc/mongod.conf
 systemctl enable mongod 
 systemctl start mongod
+sleep 3
+rm /var/lib/mongodb/mongod.lock
+mongod --repair --dbpath /var/lib/mongodb
 mongo --eval "printjson(rs.initiate())"
+
+# configure rocketchat
+useradd -M rocketchat
+usermod -L rocketchat
+chown -R rocketchat:rocketchat /opt/Rocket.Chat
 cp -f $rootDir/dev/tweaks/rocketchat.service /lib/systemd/system/
 sed -i '/Environment=/s/DOMAIN_PLACEHOLDER/'"${CWM_DISPLAYED_ADDRESS}"':3000/g' /lib/systemd/system/rocketchat.service
 systemctl daemon-reload
@@ -60,11 +64,8 @@ cp -f $rootDir/dev/tweaks/rocketchat.conf /etc/nginx/sites-available/
 ln -s /etc/nginx/sites-available/rocketchat.conf /etc/nginx/sites-enabled/
 unlink /etc/nginx/sites-enabled/default
 sed -i '/Environment=/s/http:\/\/'"${CWM_DISPLAYED_ADDRESS}"':3000/https:\/\/'"${CWM_DISPLAYED_ADDRESS}"'\//g' /lib/systemd/system/rocketchat.service
-
 service nginx restart
 
 tagScript success
-
-END
 
 exit 0

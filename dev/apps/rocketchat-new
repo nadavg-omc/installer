@@ -41,7 +41,7 @@ useradd -M rocketchat
 usermod -L rocketchat
 chown -R rocketchat:rocketchat /opt/Rocket.Chat
 sed -i "s/^#  engine:/  engine: mmapv1/"  /etc/mongod.conf
-sed -i "s/^#replic\\\ation:/replication:\n  replSetName: rs01/" /etc/mongod.conf
+sed -i "s/^#replication:/replication:\n  replSetName: rs01/" /etc/mongod.conf
 systemctl enable mongod 
 systemctl start mongod
 mongo --eval "printjson(rs.initiate())"
